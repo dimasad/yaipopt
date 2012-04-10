@@ -1,3 +1,5 @@
+from libc.string cimport memcpy
+
 cimport numpy as npc
 import numpy as np
 
@@ -15,21 +17,21 @@ cdef extern from "coin/IpStdCInterface.h":
     
     ctypedef Bool (*Eval_F_CB)(Index n, Number* x, Bool new_x,
                                Number* obj_value,
-                               UserDataPtr user_data) except 0
+                               UserDataPtr user_data) except? 0
     ctypedef Bool (*Eval_Grad_F_CB)(Index n, Number* x, Bool new_x,
                                     Number* grad_f,
-                                    UserDataPtr user_data) except 0
+                                    UserDataPtr user_data) except? 0
     ctypedef Bool (*Eval_G_CB)(Index n, Number* x, Bool new_x,
                                Index m, Number* g,
-                               UserDataPtr user_data) except 0
+                               UserDataPtr user_data) except? 0
     ctypedef Bool (*Eval_Jac_G_CB)(Index n, Number *x, Bool new_x,
                                    Index m, Index nele_jac,
                                    Index *iRow, Index *jCol, Number *values,
-                                   UserDataPtr user_data) except 0
+                                   UserDataPtr user_data) except? 0
     ctypedef Bool (*Eval_H_CB)(Index n, Number *x, Bool new_x,Number obj_factor,
                                Index m, Number *lambda_, Bool new_lambda,
                                Index nele_hess, Index *iRow, Index *jCol,
-                               Number *values, UserDataPtr user_data) except 0
+                               Number *values, UserDataPtr user_data) except? 0
     ctypedef Bool (*Intermediate_CB)(Index alg_mod,
                                      Index iter_count, Number obj_value,
                                      Number inf_pr, Number inf_du,
@@ -37,7 +39,7 @@ cdef extern from "coin/IpStdCInterface.h":
                                      Number regularization_size,
                                      Number alpha_du, Number alpha_pr,
                                      Index ls_trials,
-                                     UserDataPtr user_data) except 0
+                                     UserDataPtr user_data) except? 0
     
     cdef IpoptProblem CreateIpoptProblem(
         Index n, Number* x_L, Number* x_U, Index m, Number* g_L, Number* g_U,
@@ -50,8 +52,8 @@ cdef class Problem:
     cdef IpoptProblem prob
     cdef readonly object merit, constr, merit_grad, constr_jac, hess
     
-    def __cinit__(self, x_L, x_U, constr_L, constr_U, nele_jac, nele_hess,
-                  merit, constr, merit_grad, constr_jac, hess=None):
+    def __init__(self, x_L, x_U, constr_L, constr_U, nele_jac, nele_hess,
+                 merit, constr, merit_grad, constr_jac, hess=None):
         #Convert input to numpy arrays
         x_L = np.asarray(x_L, np.double).ravel()
         x_U = np.asarray(x_U, np.double).ravel()
@@ -78,7 +80,7 @@ cdef class Problem:
 
 
 cdef Bool eval_f(Index n, Number* x_ptr, Bool new_x, Number* obj_value,
-                 UserDataPtr user_data) except 0:
+                 UserDataPtr user_data) except? 0:
     cdef Problem problem = <Problem>  user_data
     cdef npc.npy_intp *x_dims = [n]
     x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)
@@ -88,26 +90,63 @@ cdef Bool eval_f(Index n, Number* x_ptr, Bool new_x, Number* obj_value,
     return 1
 
 
-cdef Bool eval_grad_f(Index n, Number* x, Bool new_x, Number* grad_f,
-                      UserDataPtr user_data) except 0:
+cdef Bool eval_grad_f(Index n, Number* x_ptr, Bool new_x, Number* grad_ptr,
+                      UserDataPtr user_data) except? 0:
+    cdef Problem problem = <Problem>  user_data
+    cdef npc.npy_intp *x_dims = [n]    
+    x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)
+    
+    grad = np.ravel(problem.merit_grad(x, new_x))
+    memcpy(grad_ptr, npc.PyArray_DATA(grad), n*sizeof(double))
+    
     return 1
 
 
-cdef Bool eval_g(Index n, Number* x, Bool new_x, Index m, Number* g,
-                 UserDataPtr user_data) except 0:
+cdef Bool eval_g(Index n, Number* x_ptr, Bool new_x, Index m, Number* g_ptr,
+                 UserDataPtr user_data) except? 0:
+    cdef Problem problem = <Problem>  user_data
+    cdef npc.npy_intp *x_dims = [n]    
+    x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)
+    
+    g = np.ravel(problem.constr(x, new_x))
+    memcpy(g_ptr, npc.PyArray_DATA(g), m*sizeof(double))
+    
     return 1
 
 
-cdef Bool eval_jac_g(Index n, Number *x, Bool new_x, Index m, Index nele_jac,
-                     Index *iRow, Index *jCol, Number *values,
-                     UserDataPtr user_data) except 0:
+cdef Bool eval_jac_g(Index n, Number *x_ptr, Bool new_x, Index m,
+                     Index nele_jac, Index *i_ptr, Index *j_ptr,
+                     Number *values_ptr, UserDataPtr user_data) except? 0:
+    cdef Problem problem = <Problem>  user_data
+    cdef npc.npy_intp *x_dims = [n]
+    x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)
+    
+    if values_ptr == NULL:
+        i, j = problem.constr_jac(x, new_x, True)
+        i = np.ravel(i)
+        j = np.ravel(j)
+        memcpy(i_ptr, npc.PyArray_DATA(i), nele_jac*sizeof(double))
+        memcpy(j_ptr, npc.PyArray_DATA(j), nele_jac*sizeof(double))
+    else:
+        values = np.ravel(problem.constr_jac(x, new_x, False))
+        memcpy(values_ptr, npc.PyArray_DATA(values), nele_jac*sizeof(double))
+    
     return 1
 
 
-cdef Bool eval_h(Index n, Number *x, Bool new_x,Number obj_factor, Index m,
-                 Number *lambda_, Bool new_lambda, Index nele_hess,
-                 Index *iRow, Index *jCol, Number *values,
-                 UserDataPtr user_data) except 0:
+cdef Bool eval_h(Index n, Number *x_ptr, Bool new_x,Number obj_factor, Index m,
+                 Number *lambda_ptr, Bool new_lambda, Index nele_hess,
+                 Index *i_ptr, Index *j_ptr, Number *values_ptr,
+                 UserDataPtr user_data) except? 0:
+    cdef Problem problem = <Problem>  user_data
+    cdef npc.npy_intp *x_dims = [n]
+    x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)
+    
+    if problem.hess is None:
+        return 0
+    
+    #TODO:
+    
     return 1
 
 
@@ -116,7 +155,7 @@ cdef Bool intermediate_callback(Index alg_mod, Index iter_count,
                                 Number mu, Number d_norm,
                                 Number regularization_size,  Number alpha_du,
                                 Number alpha_pr, Index ls_trials,
-                                UserDataPtr user_data) except 0:
+                                UserDataPtr user_data) except? 0:
     return 1
 
 
