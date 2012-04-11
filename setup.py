@@ -1,7 +1,11 @@
-import commands
-from distutils.core import setup
-from distutils.extension import Extension
+from distribute_setup import use_setuptools;
+use_setuptools()
 
+
+import commands
+
+from setuptools import setup
+from setuptools.extension import Extension
 from Cython.Distutils import build_ext
 
 
