@@ -1,7 +1,3 @@
-from distribute_setup import use_setuptools;
-use_setuptools()
-
-
 import commands
 
 from setuptools import setup
@@ -33,4 +29,5 @@ setup(name="ipopt",
       author='Dimas Abreu Dutra',
       author_email='dimasadutra@gmail.com',
       url='http://github.com/dimasad/python-ipopt',
+      install_requires='distribute',
       cmdclass={"build_ext": build_ext}, ext_modules=[ipopt_ext])
