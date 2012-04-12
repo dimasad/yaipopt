@@ -101,7 +101,9 @@ cdef class Problem:
         self.constr = constr
         self.obj_grad = obj_grad
         self.constr_jac = constr_jac
+        self.constr_jac_inds = constr_jac_inds
         self.hess = hess
+        self.hess_inds = hess_inds
         
         self.ipopt_problem = CreateIpoptProblem(
             self.n, <double*> npc.PyArray_DATA(x_L),
@@ -186,8 +188,8 @@ cdef Bool eval_jac_g(Index n, Number *x_ptr, Bool new_x, Index m,
     cdef npc.npy_intp *x_dims = [n]
     
     if values_ptr == NULL:
-        i = npc.PyArray_SimpleNewFromData(1, jac_dims, npc.NPY_DOUBLE, i_ptr)
-        j = npc.PyArray_SimpleNewFromData(1, jac_dims, npc.NPY_DOUBLE, j_ptr)
+        i = npc.PyArray_SimpleNewFromData(1, jac_dims, npc.NPY_INT, i_ptr)
+        j = npc.PyArray_SimpleNewFromData(1, jac_dims, npc.NPY_INT, j_ptr)
         i[:], j[:] = problem.constr_jac_inds
     else:
         x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)
@@ -212,8 +214,8 @@ cdef Bool eval_h(Index n, Number *x_ptr, Bool new_x, Number obj_factor, Index m,
         return 0
     
     if values_ptr == NULL:
-        i = npc.PyArray_SimpleNewFromData(1, hess_dims, npc.NPY_DOUBLE, i_ptr)
-        j = npc.PyArray_SimpleNewFromData(1, hess_dims, npc.NPY_DOUBLE, j_ptr)
+        i = npc.PyArray_SimpleNewFromData(1, hess_dims, npc.NPY_INT, i_ptr)
+        j = npc.PyArray_SimpleNewFromData(1, hess_dims, npc.NPY_INT, j_ptr)
         i[:], j[:] = problem.hess_inds
     else:
         x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)

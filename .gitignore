@@ -1,6 +1,6 @@
 build
 dist
 ipopt.egg-info
+cython_debug
 *.pyc
 *.so
-

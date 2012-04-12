@@ -5,7 +5,7 @@ import ipopt
 
 def test_hs071():
     x_bounds = (np.ones(4), np.repeat(5.0, 4))
-    constr_bounds = ([25, 40], [2e19, 40])
+    constr_bounds = ([25, 40], [np.inf, 40])
 
     obj = lambda x, new_x: x[0]*x[3]*(x[0] + x[1] + x[2]) + x[2]
     obj_grad = lambda x, new_x: [x[0]*x[3] + x[3]*(x[0] + x[1] + x[2]),
@@ -44,6 +44,7 @@ def test_hs071():
                             obj, constr, obj_grad, constr_jac, hess)
 
     x0 = [1.0, 5.0, 5.0, 1.0]
-    solution = problem.solve(x0)
+    xopt, info = problem.solve(x0)
 
-    
+    expected_xopt = [1, 4.743, 3.82115, 1.379408]
+    np.testing.assert_almost_equal(xopt, expected_xopt, decimal=6)
