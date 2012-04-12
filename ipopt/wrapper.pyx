@@ -83,27 +83,28 @@ cdef class Problem:
     
     def __init__(self, x_bounds, constr_bounds, constr_jac_inds, hess_inds,
                  obj, constr, obj_grad, constr_jac, hess=None):
-        #Convert input to numpy arrays
-        x_L = np.require(x_bounds[0], np.double, 'AC')
-        x_U = np.require(x_bounds[1], np.double, 'AC')
-        constr_L = np.require(constr_bounds[0], np.double, 'AC')
-        constr_U = np.require(constr_bounds[1], np.double, 'AC')
-        
-        if x_L.size != x_U.size or constr_L.size != constr_U.size:
-            raise ValueError, 'Upper and lower bounds are of different sizes.'
-        
-        hess_inds = np.asarray(hess_inds, np.int).reshape((2, -1))
-        constr_jac_inds = np.asarray(constr_jac_inds, np.int).reshape((2, -1))
-                
-        self.n = x_L.size
-        self.m = constr_L.size
-        nele_hess = hess_inds.shape[1]
-        nele_jac = constr_jac_inds.shape[1]
+        if len(x_bounds) != 2 or len(constr_bounds) != 2:
+            raise ValueError, 'Bounds of invalid lengths.'
 
-        if not np.all(0 <= hess_inds < self.n):
+        if len(hess_inds) != 2 or len(constr_jac_inds) != 2:
+            raise ValueError, 'Indices of invalid lengths.'
+
+        #Convert input to numpy arrays
+        x_bounds = np.ascontiguousarray(x_bounds, np.double)
+        constr_bounds = np.ascontiguousarray(constr_bounds, np.double)
+        hess_inds = np.ascontiguousarray(hess_inds, np.int)
+        constr_jac_inds = np.ascontiguousarray(constr_jac_inds, np.int)
+                
+        self.n = x_bounds.size/2
+        self.m = constr_bounds.size/2
+        nele_hess = hess_inds.size/2
+        nele_jac = constr_jac_inds.size/2
+
+        if np.any(hess_inds < 0) or np.any(hess_inds >= self.n):
             raise ValueError, 'Hessian indices out of range.'
         
-        if not np.all(0 <= constr_jac_inds < [[self.m], [self.n]]):
+        if (np.any(constr_jac_inds < 0) or
+            np.any(constr_jac_inds >= [[self.m], [self.n]])):
             raise ValueError, 'Constraint Jacobian indices out of range.'
         
         self.obj = obj
@@ -115,11 +116,11 @@ cdef class Problem:
         self.hess_inds = hess_inds
         
         self.ipopt_problem = CreateIpoptProblem(
-            self.n, <double*> npc.PyArray_DATA(x_L),
-            <double*> npc.PyArray_DATA(x_U), self.m,
-            <double*> npc.PyArray_DATA(constr_L),
-            <double*> npc.PyArray_DATA(constr_U), nele_jac, nele_hess, 0,
-            eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h)
+            self.n, <double*> npc.PyArray_DATA(x_bounds[0]),
+            <double*> npc.PyArray_DATA(x_bounds[1]), self.m,
+            <double*> npc.PyArray_DATA(constr_bounds[0]),
+            <double*> npc.PyArray_DATA(constr_bounds[1]), nele_jac, nele_hess,
+            0, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h)
 
         if nele_hess == 0 or hess is None:
             self.str_option('hessian_approximation', 'limited-memory')
