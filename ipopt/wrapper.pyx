@@ -92,18 +92,19 @@ cdef class Problem:
         if x_L.size != x_U.size or constr_L.size != constr_U.size:
             raise ValueError, 'Upper and lower bounds are of different sizes.'
         
-        hess_inds = (np.ravel(hess_inds[0]), np.ravel(hess_inds[1]))
-        constr_jac_inds = (np.ravel(constr_jac_inds[0]),
-                           np.ravel(constr_jac_inds[1]))
-        
-        if (hess_inds[0].size != hess_inds[1].size or
-            constr_jac_inds[0].size != constr_jac_inds[1].size):
-            raise ValueError, 'Hessian column and row inds of different sizes.'
-        
+        hess_inds = np.asarray(hess_inds, np.int).reshape((2, -1))
+        constr_jac_inds = np.asarray(constr_jac_inds, np.int).reshape((2, -1))
+                
         self.n = x_L.size
         self.m = constr_L.size
-        nele_hess = hess_inds[0].size
-        nele_jac = constr_jac_inds[0].size
+        nele_hess = hess_inds.shape[1]
+        nele_jac = constr_jac_inds.shape[1]
+
+        if not np.all(0 <= hess_inds < self.n):
+            raise ValueError, 'Hessian indices out of range.'
+        
+        if not np.all(0 <= constr_jac_inds < [[self.m], [self.n]]):
+            raise ValueError, 'Constraint Jacobian indices out of range.'
         
         self.obj = obj
         self.constr = constr
