@@ -1,5 +1,4 @@
 from libc.string cimport memcpy
-from libc.stdlib cimport free
 
 cimport numpy as npc
 import numpy as np
@@ -60,11 +59,20 @@ cdef extern from "coin/IpStdCInterface.h":
         Index nele_jac, Index nele_hess, Index index_style, Eval_F_CB eval_f,
         Eval_G_CB eval_g, Eval_Grad_F_CB eval_grad_f, Eval_Jac_G_CB eval_jac_g,
         Eval_H_CB eval_h)
-
     cdef ApplicationReturnStatus IpoptSolve(
         IpoptProblem ipopt_problem, Number* x, Number* g, Number* obj_val,
         Number* mult_g, Number* mult_x_L, Number* mult_x_U,
         UserDataPtr user_data)
+    cdef void FreeIpoptProblem(IpoptProblem prob)
+    cdef Bool AddIpoptStrOption(IpoptProblem prob, char* keyword, char* val)
+    cdef Bool AddIpoptNumOption(IpoptProblem prob, char* keyword, Number val)
+    cdef Bool AddIpoptIntOption(IpoptProblem prob, char* keyword, Int val)
+    cdef Bool OpenIpoptOutputFile(IpoptProblem prob, char* file_name,
+                                  Int print_level)
+    cdef Bool SetIpoptProblemScaling(IpoptProblem prob, Number obj_scaling,
+                                     Number* x_scaling, Number* g_scaling)
+    cdef Bool SetIntermediateCallback(IpoptProblem ipopt_problem,
+                                      Intermediate_CB intermediate_cb)
 
 
 cdef class Problem:
@@ -87,7 +95,7 @@ cdef class Problem:
         hess_inds = (np.ravel(hess_inds[0]), np.ravel(hess_inds[1]))
         constr_jac_inds = (np.ravel(constr_jac_inds[0]),
                            np.ravel(constr_jac_inds[1]))
-
+        
         if (hess_inds[0].size != hess_inds[1].size or
             constr_jac_inds[0].size != constr_jac_inds[1].size):
             raise ValueError, 'Hessian column and row inds of different sizes.'
@@ -112,11 +120,26 @@ cdef class Problem:
             <double*> npc.PyArray_DATA(constr_U), nele_jac, nele_hess, 0,
             eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h)
 
+        if nele_hess == 0 or hess is None:
+            self.str_option('hessian_approximation', 'limited-memory')
+    
     def __dealloc__(self):
         if self.ipopt_problem is not NULL:
-            free(self.ipopt_problem)
+            FreeIpoptProblem(self.ipopt_problem)
+
+    def str_option(self, option, value):
+        return bool(AddIpoptStrOption(self.ipopt_problem, option, value))
     
+    def num_option(self, option, value):
+        return bool(AddIpoptNumOption(self.ipopt_problem, option, value))
+
+    def int_option(self, option, value):
+        return bool(AddIpoptIntOption(self.ipopt_problem, option, value))
+
     def solve(self, start_x):
+        if self.ipopt_problem is NULL:
+            raise RuntimeError, 'Problem not initialized.'
+        
         x = np.array(start_x, np.double).ravel()
         if x.size != self.n:
             raise ValueError, 'Start point of invalid size.'
