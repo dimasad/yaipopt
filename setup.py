@@ -29,6 +29,8 @@ setup(name="ipopt",
       author='Dimas Abreu Dutra',
       author_email='dimasadutra@gmail.com',
       url='http://github.com/dimasad/python-ipopt',
+      test_suite='nose.collector',
+      tests_require=['nose>=1.0'],
       install_requires='distribute',
       packages=find_packages(),
       cmdclass={"build_ext": build_ext}, ext_modules=[wrapper_ext])
