@@ -1,6 +1,5 @@
 build
 dist
-ipopt.c
 ipopt.egg-info
 *.pyc
 *.so

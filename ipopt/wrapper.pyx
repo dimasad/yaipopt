@@ -1,7 +1,11 @@
 from libc.string cimport memcpy
+from libc.stdlib cimport free
 
 cimport numpy as npc
 import numpy as np
+
+
+npc.import_array()
 
 
 cdef extern from "coin/IpStdCInterface.h":
@@ -64,7 +68,7 @@ cdef extern from "coin/IpStdCInterface.h":
 
 
 cdef class Problem:
-    cdef IpoptProblem ipopt_proplem
+    cdef IpoptProblem ipopt_problem
     cdef readonly object obj, constr, obj_grad, constr_jac, hess
     cdef readonly object constr_jac_inds, hess_inds
     cdef readonly int m, n
@@ -99,12 +103,16 @@ cdef class Problem:
         self.constr_jac = constr_jac
         self.hess = hess
         
-        self.ipopt_proplem = CreateIpoptProblem(
+        self.ipopt_problem = CreateIpoptProblem(
             self.n, <double*> npc.PyArray_DATA(x_L),
             <double*> npc.PyArray_DATA(x_U), self.m,
             <double*> npc.PyArray_DATA(constr_L),
             <double*> npc.PyArray_DATA(constr_U), nele_jac, nele_hess, 0,
             eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h)
+
+    def __dealloc__(self):
+        if self.ipopt_problem is not NULL:
+            free(self.ipopt_problem)
     
     def solve(self, start_x):
         x = np.array(start_x, np.double).ravel()
@@ -121,7 +129,7 @@ cdef class Problem:
         constr_mult = npc.PyArray_SimpleNew(1, constr_dims, npc.NPY_DOUBLE)
         
         status = IpoptSolve(
-            self.ipopt_proplem, <double*> npc.PyArray_DATA(x),
+            self.ipopt_problem, <double*> npc.PyArray_DATA(x),
             <double*> npc.PyArray_DATA(constr), &obj_val,
             <double*> npc.PyArray_DATA(constr_mult),
             <double*> npc.PyArray_DATA(x_mult_L),
@@ -152,7 +160,7 @@ cdef Bool eval_grad_f(Index n, Number* x_ptr, Bool new_x, Number* grad_ptr,
     x = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, x_ptr)
     grad = npc.PyArray_SimpleNewFromData(1, x_dims, npc.NPY_DOUBLE, grad_ptr)
     
-    grad[:] = np.ravel(problem.obj_grad(x, new_x))
+    grad[:] = problem.obj_grad(x, new_x)
     
     return 1
 
@@ -226,7 +234,3 @@ cdef Bool intermediate_callback(Index alg_mod, Index iter_count,
                                 Number alpha_pr, Index ls_trials,
                                 UserDataPtr user_data) except? 0:
     return 1
-
-
-def create(*args):
-    pass

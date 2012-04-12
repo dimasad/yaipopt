@@ -1,6 +1,6 @@
 import commands
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from Cython.Distutils import build_ext
 
@@ -21,7 +21,7 @@ try:
 except:
     lipipopt_cfg = {}
 
-ipopt_ext = Extension("ipopt", ["ipopt.pyx"], **lipipopt_cfg)
+wrapper_ext = Extension("ipopt.wrapper", ["ipopt/wrapper.pyx"], **lipipopt_cfg)
 
 setup(name="ipopt",
       version='0.1',
@@ -30,4 +30,5 @@ setup(name="ipopt",
       author_email='dimasadutra@gmail.com',
       url='http://github.com/dimasad/python-ipopt',
       install_requires='distribute',
-      cmdclass={"build_ext": build_ext}, ext_modules=[ipopt_ext])
+      packages=find_packages(),
+      cmdclass={"build_ext": build_ext}, ext_modules=[wrapper_ext])
