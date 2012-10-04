@@ -81,25 +81,38 @@ cdef class Problem:
     cdef readonly object constr_jac_inds, hess_inds
     cdef readonly int m, n
     
-    def __init__(self, x_bounds, constr_bounds, constr_jac_inds, hess_inds,
-                 obj, constr, obj_grad, constr_jac, hess=None):
+    def __init__(self, x_bounds, obj, obj_grad,
+                 constr_bounds=None, constr=None, constr_jac=None,
+                 constr_jac_inds=None, hess=None, hess_inds=None):
+        
+        # Unconstrained case
+        if constr is None:
+            constr_bounds = constr_jac_inds = np.zeros((2, 0))
+        
+        # Quasi-Newton case
+        if hess is None:
+            hess_inds = np.zeros((2, 0))
+        
+        # Check dimensions of input arguments
         if len(x_bounds) != 2 or len(constr_bounds) != 2:
             raise ValueError, 'Bounds of invalid lengths.'
 
         if len(hess_inds) != 2 or len(constr_jac_inds) != 2:
             raise ValueError, 'Indices of invalid lengths.'
 
-        #Convert input to numpy arrays
+        # Convert input to numpy arrays
         x_bounds = np.ascontiguousarray(x_bounds, np.double)
         constr_bounds = np.ascontiguousarray(constr_bounds, np.double)
         hess_inds = np.ascontiguousarray(hess_inds, np.int)
         constr_jac_inds = np.ascontiguousarray(constr_jac_inds, np.int)
-                
+        
+        # Define problem dimensions
         self.n = x_bounds.size/2
         self.m = constr_bounds.size/2
         nele_hess = hess_inds.size/2
         nele_jac = constr_jac_inds.size/2
-
+        
+        # Check bounds of indices. Invalid bounds generate segfault
         if np.any(hess_inds < 0) or np.any(hess_inds >= self.n):
             raise ValueError, 'Hessian indices out of range.'
         
@@ -107,6 +120,7 @@ cdef class Problem:
             np.any(constr_jac_inds >= [[self.m], [self.n]])):
             raise ValueError, 'Constraint Jacobian indices out of range.'
         
+        # Save problem data
         self.obj = obj
         self.constr = constr
         self.obj_grad = obj_grad
@@ -115,6 +129,7 @@ cdef class Problem:
         self.hess = hess
         self.hess_inds = hess_inds
         
+        # Create IPOPT's representation of the problem
         self.ipopt_problem = CreateIpoptProblem(
             self.n, <double*> npc.PyArray_DATA(x_bounds[0]),
             <double*> npc.PyArray_DATA(x_bounds[1]), self.m,

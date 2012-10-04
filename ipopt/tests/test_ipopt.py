@@ -40,8 +40,9 @@ def test_hs071():
         obj_factor*x[0] + lmult[0]*x[0]*x[1],
         lmult[1]*2]
 
-    problem = ipopt.Problem(x_bounds, constr_bounds, constr_jac_inds, hess_inds,
-                            obj, constr, obj_grad, constr_jac, hess)
+    problem = ipopt.Problem(x_bounds, obj, obj_grad, 
+                            constr_bounds, constr, constr_jac, constr_jac_inds,
+                            hess, hess_inds)
 
     x0 = [1.0, 5.0, 5.0, 1.0]
     xopt, info = problem.solve(x0)

@@ -1,27 +1,20 @@
-import commands
+import os
 
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from Cython.Distutils import build_ext
 
 
-# The function bellow was based in the following recipe:
-# http://code.activestate.com/recipes/502261-python-distutils-pkg-config/
-def pkgconfig(*pakages, **kw):
+def flag_dict(flags):
+    d = {}
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
-    pkg_names = ' '.join(pakages)
-    output = commands.getoutput("pkg-config --libs --cflags %s" % pkg_names)
-    for token in output.split():
-        kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
-    return kw
+    for token in flags.split():
+        d.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+    return d
 
 
-try:
-    lipipopt_cfg = pkgconfig('ipopt')
-except:
-    lipipopt_cfg = {}
-
-wrapper_ext = Extension("ipopt.wrapper", ["ipopt/wrapper.pyx"], **lipipopt_cfg)
+ipopt_cfg = flag_dict(os.environ.get('IPOPT_CFLAGS', ''))
+wrapper_ext = Extension("ipopt.wrapper", ["ipopt/wrapper.pyx"], **ipopt_cfg)
 
 setup(name="ipopt",
       version='0.1',
