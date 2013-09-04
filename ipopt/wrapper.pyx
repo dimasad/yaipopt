@@ -138,7 +138,7 @@ cdef class Problem:
             0, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h)
 
         if nele_hess == 0 or hess is None:
-            self.str_option('hessian_approximation', 'limited-memory')
+            self.str_option(b'hessian_approximation', b'limited-memory')
     
     def __dealloc__(self):
         if self.ipopt_problem is not NULL:
