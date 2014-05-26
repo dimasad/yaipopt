@@ -107,10 +107,10 @@ cdef class Problem:
         constr_jac_inds = np.ascontiguousarray(constr_jac_inds, np.int)
         
         # Define problem dimensions
-        self.n = x_bounds.size/2
-        self.m = constr_bounds.size/2
-        nele_hess = hess_inds.size/2
-        nele_jac = constr_jac_inds.size/2
+        self.n = x_bounds.size / 2
+        self.m = constr_bounds.size / 2
+        cdef int nele_hess = hess_inds.size / 2
+        cdef int nele_jac = constr_jac_inds.size / 2
         
         # Check bounds of indices. Invalid bounds generate segfault
         if np.any(hess_inds < 0) or np.any(hess_inds >= self.n):
