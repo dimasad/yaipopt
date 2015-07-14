@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
@@ -13,7 +14,22 @@ def flag_dict(flags):
     return d
 
 
-ipopt_cfg = flag_dict(os.environ.get('IPOPT_CFLAGS', ''))
+if 'IPOPT_CFLAGS' in os.environ:
+    flags = os.environ.get('IPOPT_CFLAGS')
+    print("Using compilation flags given in IPOPT_CFLAGS environment variable:")
+    print("\t", flags)
+else:
+    try:
+        cmd = ['pkg-config', '--libs', '--cflags', 'ipopt']
+        flags = subprocess.check_output(cmd).decode()
+        print("Using compilation flags given by pkg-config:")
+        print("\t", flags)
+    except subprocess.CalledProcessError:
+        print("No compilation flags found.")
+        flags = ''
+
+
+ipopt_cfg = flag_dict(flags)
 wrapper_ext = Extension("ipopt.wrapper", ["ipopt/wrapper.pyx"], **ipopt_cfg)
 
 setup(name="ipopt",
