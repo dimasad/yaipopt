@@ -1,12 +1,10 @@
 import os
 import subprocess
 
-from setuptools import setup, find_packages
-from setuptools.extension import Extension
-from Cython.Distutils import build_ext
+from setuptools import Extension, setup, find_packages
 
 
-DESCRIPTION = open("README.rst", encoding="utf-8").read()
+DESCRIPTION = open("README.rst").read()
 
 CLASSIFIERS = '''\
 Intended Audience :: Developers
@@ -22,41 +20,40 @@ Topic :: Scientific/Engineering
 Topic :: Software Development'''
 
 
-if 'IPOPT_CFLAGS' in os.environ:
-    flags = os.environ.get('IPOPT_CFLAGS')
-    print("Using compilation flags given in IPOPT_CFLAGS environment variable:")
-    print("\t", flags)
-else:
-    try:
-        cmd = ['pkg-config', '--libs', '--cflags', 'ipopt']
-        flags = subprocess.check_output(cmd).decode()
-        print("Using compilation flags given by pkg-config:")
+def ipopt_opts():
+    if 'IPOPT_FLAGS' in os.environ:
+        flags = os.environ.get('IPOPT_FLAGS')
+        print("Using compilation flags given in environment variable:")
         print("\t", flags)
-    except subprocess.CalledProcessError:
-        print("No compilation flags found.")
-        flags = ''
-
-
-def flag_dict(flags):
-    d = {}
+    else:
+        try:
+            cmd = ['pkg-config', '--libs', '--cflags', 'ipopt']
+            flags = subprocess.check_output(cmd).decode()
+            print("Using compilation flags given by pkg-config:")
+            print("\t", flags)
+        except subprocess.CalledProcessError:
+            print("No compilation flags found.")
+            flags = ''    
+    opts = {}
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
     for token in flags.split():
-        d.setdefault(flag_map.get(token[:2]), []).append(token[2:])
-    return d
+        opt_name = flag_map.get(token[:2])
+        if opt_name:
+            opts.setdefault(opt_name, []).append(token[2:])
+    return opts
 
 
-ipopt_cfg = flag_dict(flags)
-wrapper_ext = Extension("yaipopt.wrapper", ["yaipopt/wrapper.pyx"], **ipopt_cfg)
+wrapper = Extension("yaipopt.wrapper", ["yaipopt/wrapper.pyx"], **ipopt_opts())
 
 
 setup(
     name="yaipopt",
-    version='0.1.dev1',
+    version='0.1.dev2',
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
-    install_requires=['cython', 'distribute', 'numpy'],
+    install_requires=['cython', 'numpy', 'setuptools>=18.0.1'],
     packages=find_packages(),
-    cmdclass={"build_ext": build_ext}, ext_modules=[wrapper_ext],
+    ext_modules=[wrapper],
     
     # metadata for upload to PyPI
     author='Dimas Abreu Dutra',
