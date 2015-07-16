@@ -70,5 +70,5 @@ setup(
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     classifiers=CLASSIFIERS.split('\n'),
     license="MIT",
-    url='http://github.com/dimasad/cyipopt',
+    url='http://github.com/dimasad/yaipopt',
 )
