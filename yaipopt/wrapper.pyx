@@ -3,7 +3,6 @@ from libc.string cimport memcpy
 cimport numpy as npc
 import numpy as np
 
-
 npc.import_array()
 
 
@@ -145,14 +144,20 @@ cdef class Problem:
             FreeIpoptProblem(self.ipopt_problem)
 
     def str_option(self, option, value):
+        if isinstance(option, str):
+            option = option.encode('ascii')
         return bool(AddIpoptStrOption(self.ipopt_problem, option, value))
     
     def num_option(self, option, value):
+        if isinstance(option, str):
+            option = option.encode('ascii')
         return bool(AddIpoptNumOption(self.ipopt_problem, option, value))
 
     def int_option(self, option, value):
+        if isinstance(option, str):
+            option = option.encode('ascii')
         return bool(AddIpoptIntOption(self.ipopt_problem, option, value))
-
+    
     def solve(self, start_x):
         if self.ipopt_problem is NULL:
             raise RuntimeError, 'Problem not initialized.'

@@ -16,11 +16,14 @@ Operating System :: POSIX
 Operating System :: Unix
 Programming Language :: Python
 Programming Language :: Python :: 3
+Programming Language :: Python :: 3 :: Only
 Topic :: Scientific/Engineering
 Topic :: Software Development'''
 
 
 def ipopt_opts():
+    # Based on code from
+    # http://code.activestate.com/recipes/502261-python-distutils-pkg-config/
     if 'IPOPT_FLAGS' in os.environ:
         flags = os.environ.get('IPOPT_FLAGS')
         print("Using compilation flags given in environment variable:")
@@ -57,7 +60,7 @@ setup(
     version='0.1.dev2',
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
-    install_requires=['cython', 'numpy', 'setuptools'],
+    install_requires=['python>=3.0', 'cython', 'numpy', 'setuptools'],
     packages=find_packages(),
     cmdclass=cmdclass,
     ext_modules=[wrapper],
