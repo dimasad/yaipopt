@@ -146,6 +146,8 @@ cdef class Problem:
     def str_option(self, option, value):
         if isinstance(option, str):
             option = option.encode('ascii')
+        if isinstance(value, str):
+            value = value.encode('ascii')
         return bool(AddIpoptStrOption(self.ipopt_problem, option, value))
     
     def num_option(self, option, value):
