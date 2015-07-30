@@ -60,7 +60,7 @@ setup(
     version='0.1.dev2',
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
-    install_requires=['python>=3.0', 'cython', 'numpy', 'setuptools'],
+    install_requires=['cython', 'numpy', 'setuptools'],
     packages=find_packages(),
     cmdclass=cmdclass,
     ext_modules=[wrapper],
