@@ -55,6 +55,13 @@ except ImportError:
     cmdclass = {}
 
 
+try:
+    import numpy
+    include_dirs = [numpy.get_include()]
+except ImportError:
+    include_dirs = []
+
+
 setup(
     name="yaipopt",
     version='0.1.dev2',
@@ -63,6 +70,7 @@ setup(
     install_requires=['cython', 'numpy', 'setuptools'],
     packages=find_packages(),
     cmdclass=cmdclass,
+    include_dirs=include_dirs,
     ext_modules=[wrapper],
     
     # metadata for upload to PyPI
